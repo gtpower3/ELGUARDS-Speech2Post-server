@@ -60,7 +60,7 @@ async function optimizePostContent(content) {
         });
         const message = completion.choices[0].message
         console.log(message);
-        return message.content;
+        return JSON.parse(message.content);
     } catch (error) {
         console.error(error);
         return '';
@@ -75,7 +75,7 @@ app.get("/api/hello", (req, res) => {
 app.post("/api/optimize", async (req, res) => {
     const content = req.body.content;
     // console.log("Optimizing:", content);
-    res.send(await optimizePostContent(content));
+    res.json(await optimizePostContent(content));
     // setTimeout(() => {
     //     res.send("Done")
     // }, 10000);
