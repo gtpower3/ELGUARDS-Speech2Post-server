@@ -3,20 +3,14 @@ const cors = require('cors');
 const axios = require("axios");
 const azureSdk = require("microsoft-cognitiveservices-speech-sdk");
 const OpenAI = require("openai");
-
+const multer = require("multer");
+const fs = require("fs");
+const ffmpeg = require("fluent-ffmpeg");
 
 require('@dotenvx/dotenvx').config()
 
 const app = express();
 app.use(express.json());
-
-const SERVER_PORT = process.env.SERVER_PORT;
-const AZURE_API_KEY = process.env.AZURE_API_KEY;
-const AZURE_API_REGION = process.env.AZURE_API_REGION;
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
-
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
-
 app.use(cors());
 
 // const allowedOrigins = ['https://uaeevents2024.com', 'https://lms.elguards.com'];
@@ -29,6 +23,27 @@ app.use(cors());
 //         }
 //     }
 // }));
+
+const SERVER_PORT = process.env.SERVER_PORT;
+const AZURE_KEY = process.env.AZURE_KEY;
+const AZURE_REGION = process.env.AZURE_REGION;
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+
+const openai = new OpenAI({ apiKey: OPENAI_API_KEY });
+
+// Multer setup to handle audio uploads
+const upload = multer({ dest: "uploads/" });
+
+// Function to convert audio to WAV format using ffmpeg
+const convertToWav = (inputPath, outputPath) => {
+    return new Promise((resolve, reject) => {
+        ffmpeg(inputPath)
+            .toFormat("wav")
+            .on("end", () => resolve(outputPath))
+            .on("error", reject)
+            .save(outputPath);
+    });
+};
 
 const startTranscription = () => {
     // const speechConfig = azureSdk.SpeechConfig.fromSubscription(AZURE_API_KEY, AZURE_API_REGION);
@@ -79,6 +94,42 @@ app.post("/api/optimize", async (req, res) => {
     // setTimeout(() => {
     //     res.send("Done")
     // }, 10000);
+});
+
+// Endpoint to receive audio and transcribe it
+app.post("/api/transcribe", upload.single("audio"), async (req, res) => {
+    const audioFilePath = req.file.path;
+    const wavFilePath = `uploads/${req.file.filename}.wav`;
+
+    try {
+        // Convert the audio file to WAV format
+        await convertToWav(audioFilePath, wavFilePath);
+
+        // Load the WAV file into an in-memory buffer
+        const audioBuffer = fs.readFileSync(wavFilePath);
+
+        // Configuring Azure Speech SDK with the converted WAV file
+        const speechConfig = azureSdk.SpeechConfig.fromSubscription(AZURE_KEY, AZURE_REGION);
+        const audioConfig = azureSdk.AudioConfig.fromWavFileInput(audioBuffer);
+        const recognizer = new azureSdk.SpeechRecognizer(speechConfig, audioConfig);
+
+        recognizer.recognizeOnceAsync(result => {
+            console.log(result);
+            if (result.reason === azureSdk.ResultReason.RecognizedSpeech) {
+                // Send the transcription back to the frontend
+                res.json({ transcription: result.text });
+            } else {
+                res.status(500).json({ error: "Failed to transcribe audio." });
+            }
+
+            // Clean up the uploaded files
+            fs.unlinkSync(audioFilePath);
+            fs.unlinkSync(wavFilePath);
+        });
+    } catch (error) {
+        console.error("Error converting or transcribing audio:", error);
+        res.status(500).json({ error: "Error processing audio file." });
+    }
 });
 
 app.listen(SERVER_PORT, async () => {
