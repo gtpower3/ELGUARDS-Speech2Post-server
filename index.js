@@ -61,15 +61,28 @@ const startTranscription = () => {
 
 };
 
-async function optimizePostContent(content) {
+async function optimizePostContent(content, contentLanguage) {
     try {
+        // const completion = await openai.chat.completions.create({
+        //     model: "gpt-4o-mini",
+        //     messages: [
+        //         { role: "system", content: "You are a social media manager who is an expert at posting content on official company accounts on Facebook, Twitter, Instagram and LinkedIn. You must bear in mind the constraints imposed by each social media platform such as max character limit, and also the Terms & Conditions and rules enforced by each platform. You will be given a prompt and you must optimize it to be more appealing and suitable to befit a big company social media post. If the prompt is in English then the response must be only in English but if the prompt is in Arabic then the response must be only in Arabic. You must also recommend the kind of image to accompany such a post. The response must be instantly readable as a JSON format (no string escapes except within the content attribute aka the string including the post content for each platform) and should be formatted exactly as follows: {facebook: {content: FACEBOOK_POST_STRING}, twitter: {content: TWITTER_POST_STRING}, instagram: {content: INSTAGRAM_CAPTION_STRING}, linkedin: {content: LINKEDIN_POST_STRING}, suggestedImageContent: SUGGESTED_IMAGE_STRING}" },
+        //         {
+        //             role: "user",
+        //             content: content,
+        //         },
+        //     ],
+        // });
         const completion = await openai.chat.completions.create({
             model: "gpt-4o-mini",
             messages: [
-                { role: "system", content: "You are a social media manager who is an expert at posting content on official company accounts on Facebook, Twitter, Instagram and LinkedIn. You must bear in mind the constraints imposed by each social media platform such as max character limit, and also the Terms & Conditions and rules enforced by each platform. You will be given a prompt and you must optimize it to be more appealing and suitable to befit a big company social media post. If the prompt is in Arabic then the response must be only in Arabic as well. You must also recommend the kind of image to accompany such a post. The response must be instantly readable as a JSON format (no string escapes except within the content attribute aka the string including the post content for each platform) and should be formatted exactly as follows: {facebook: {content: FACEBOOK_POST_STRING}, twitter: {content: TWITTER_POST_STRING}, instagram: {content: INSTAGRAM_CAPTION_STRING}, linkedin: {content: LINKEDIN_POST_STRING}, suggestedImageContent: SUGGESTED_IMAGE_STRING}" },
+                {
+                    role: "system",
+                    content: "You are a social media manager expert. Respond in the same language as the input: English or Arabic. Optimize the prompt for Facebook, Twitter, Instagram, and LinkedIn, keeping platform rules in mind. Provide a JSON response formatted exactly as follows: {facebook: {content: FACEBOOK_POST_STRING}, twitter: {content: TWITTER_POST_STRING}, instagram: {content: INSTAGRAM_CAPTION_STRING}, linkedin: {content: LINKEDIN_POST_STRING}, suggestedImageContent: SUGGESTED_IMAGE_STRING}."
+                },
                 {
                     role: "user",
-                    content: content,
+                    content: `Language: ${contentLanguage}. ${content}`
                 },
             ],
         });
@@ -89,8 +102,9 @@ app.get("/api/hello", (req, res) => {
 
 app.post("/api/optimize", async (req, res) => {
     const content = req.body.content;
+    const lang = req.query?.lang;
     // console.log("Optimizing:", content);
-    res.json(await optimizePostContent(content));
+    res.json(await optimizePostContent(content, lang === "en" ? "English" : lang === "ar" ? "Arabic" : "English"));
     // setTimeout(() => {
     //     res.send("Done")
     // }, 10000);
