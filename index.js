@@ -78,7 +78,7 @@ async function optimizePostContent(content, contentLanguage) {
             messages: [
                 {
                     role: "system",
-                    content: "You are a social media manager expert. Respond in the same language as the input: English or Arabic. Optimize the prompt for Facebook, Twitter, Instagram, and LinkedIn, keeping platform rules in mind. Provide a JSON response formatted exactly as follows: {facebook: {content: FACEBOOK_POST_STRING}, twitter: {content: TWITTER_POST_STRING}, instagram: {content: INSTAGRAM_CAPTION_STRING}, linkedin: {content: LINKEDIN_POST_STRING}, suggestedImageContent: SUGGESTED_IMAGE_STRING}."
+                    content: "You are a social media manager expert. Respond in the same language as the input: English or Arabic. Optimize the prompt for Facebook, Twitter, Instagram, and LinkedIn, keeping platform rules in mind. Make sure the response does not include anything that may violate the customs and traditions of the cultures and religions of the Middle East & North Africa region.  Provide a JSON response formatted exactly as follows: {facebook: {content: FACEBOOK_POST_STRING}, twitter: {content: TWITTER_POST_STRING}, instagram: {content: INSTAGRAM_CAPTION_STRING}, linkedin: {content: LINKEDIN_POST_STRING}, suggestedImageContent: SUGGESTED_IMAGE_STRING}."
                 },
                 {
                     role: "user",
